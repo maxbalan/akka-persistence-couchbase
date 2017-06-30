@@ -21,7 +21,7 @@ class CouchbaseJournal extends AsyncWriteJournal with CouchbaseRecovery with Cou
 
   override def bucket = couchbase.journalBucket
 
-  def tombstone = couchbase.journalConfig.tombstone
+  val tombstone = couchbase.journalConfig.tombstone
 
   override def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
 
