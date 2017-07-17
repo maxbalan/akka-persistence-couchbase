@@ -24,6 +24,7 @@ class CouchbaseJournal extends AsyncWriteJournal with CouchbaseRecovery with Cou
   val tombstone = couchbase.journalConfig.tombstone
 
   override def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
+    return Future.successful(Nil)
 
     val serialized = messages.map(atomicWrite => Try {
       val persistenceId = atomicWrite.persistenceId
@@ -70,6 +71,8 @@ class CouchbaseJournal extends AsyncWriteJournal with CouchbaseRecovery with Cou
   }
 
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = {
+    return Future.successful(())
+
     Future.fromTry[Unit] {
       var toDelete: List[Long] = Nil
 

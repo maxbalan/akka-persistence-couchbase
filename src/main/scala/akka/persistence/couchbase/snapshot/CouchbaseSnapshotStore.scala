@@ -21,6 +21,14 @@ class CouchbaseSnapshotStore extends SnapshotStore with CouchbaseStatements with
   val couchbase = CouchbaseExtension(context.system)
   val serialization = SerializationExtension(context.system)
 
+  final class NoSnapshotStoreException extends RuntimeException("No snapshot store configured!")
+
+  private val none: Future[Option[SelectedSnapshot]] =
+    Future.successful(None)
+
+  private val flop: Future[Nothing] =
+    Future.failed(new NoSnapshotStoreException)
+
   def config = couchbase.snapshotStoreConfig
 
   def bucket = couchbase.snapshotStoreBucket
@@ -31,17 +39,18 @@ class CouchbaseSnapshotStore extends SnapshotStore with CouchbaseStatements with
     * @param persistenceId processor id.
     * @param criteria      selection criteria for loading.
     */
-  override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    Future.fromTry {
-      Try {
-        query(persistenceId, criteria, 1).headOption.map { snapshotMessage =>
-          val metadata = SnapshotMetadata(snapshotMessage.persistenceId, snapshotMessage.sequenceNr, snapshotMessage.timestamp)
-          val snapshot = serialization.serializerFor(classOf[Snapshot]).fromBinary(snapshotMessage.message.bytes)
-          SelectedSnapshot(metadata, snapshot.asInstanceOf[Snapshot].data)
-        }
-      }
-    }
-  }
+  override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = none
+//  Future[Option[SelectedSnapshot]] = {
+//    Future.fromTry {
+//      Try {
+//        query(persistenceId, criteria, 1).headOption.map { snapshotMessage =>
+//          val metadata = SnapshotMetadata(snapshotMessage.persistenceId, snapshotMessage.sequenceNr, snapshotMessage.timestamp)
+//          val snapshot = serialization.serializerFor(classOf[Snapshot]).fromBinary(snapshotMessage.message.bytes)
+//          SelectedSnapshot(metadata, snapshot.asInstanceOf[Snapshot].data)
+//        }
+//      }
+//    }
+//  }
 
   def query(persistenceId: String, criteria: SnapshotSelectionCriteria, limit: Int): Iterable[SnapshotMessage] = {
 
@@ -72,31 +81,34 @@ class CouchbaseSnapshotStore extends SnapshotStore with CouchbaseStatements with
     * @param metadata snapshot metadata.
     * @param data     snapshot.
     */
-  override def saveAsync(metadata: SnapshotMetadata, data: Any): Future[Unit] = {
-    Future.fromTry[Unit](
-      Try {
-        val snapshot = Snapshot(data)
-        val message = Message(serialization.findSerializerFor(snapshot).toBinary(snapshot))
-        SnapshotMessage.create(metadata, message)
-      } flatMap executeSave
-    )
-  }
+  override def saveAsync(metadata: SnapshotMetadata, data: Any): Future[Unit] = flop
+//    Future[Unit] = {
+//      Future.fromTry[Unit](
+//        Try {
+//          val snapshot = Snapshot(data)
+//          val message = Message(serialization.findSerializerFor(snapshot).toBinary(snapshot))
+//          SnapshotMessage.create(metadata, message)
+//        } flatMap executeSave
+//      )
+//  }
 
-  override def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
-    Future.fromTry[Unit](
-      Try {
-        bucket.remove(SnapshotMessageKey.fromMetadata(metadata).value)
-      }
-    )
-  }
+  override def deleteAsync(metadata: SnapshotMetadata):  Future[Unit] = flop
+//  Future[Unit] = {
+//    Future.fromTry[Unit](
+//      Try {
+//        bucket.remove(SnapshotMessageKey.fromMetadata(metadata).value)
+//      }
+//    )
+//  }
 
-  override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    Future.fromTry[Unit](
-      Try {
-        query(persistenceId, criteria, Integer.MAX_VALUE).foreach { snapshotMessage =>
-          bucket.remove(SnapshotMessageKey.fromMetadata(snapshotMessage.metadata).value)
-        }
-      }
-    )
-  }
+  override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria):  Future[Unit] = flop
+//  Future[Unit] = {
+//    Future.fromTry[Unit](
+//      Try {
+//        query(persistenceId, criteria, Integer.MAX_VALUE).foreach { snapshotMessage =>
+//          bucket.remove(SnapshotMessageKey.fromMetadata(snapshotMessage.metadata).value)
+//        }
+//      }
+//    )
+//  }
 }
